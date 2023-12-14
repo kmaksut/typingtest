@@ -11,15 +11,14 @@ total_false_char = 0
 def random_kelime():
     with open("test.txt", "r" ,encoding="utf-8") as test:
         lines = test.readlines()
-    lines = [line.strip() for line in lines]
-    return random.sample(lines,100)
+    lines = [line.strip().lower() for line in lines]
+    return random.sample(lines,35)
 
 def update_soru_alani ():
     soru_alani.config(text=rand_lines)
 
 def update_timer():
-    global second
-    global tid
+    global second, tid
     second -= 1
     if second >= 10:
         timer.config(text=f"{minute}:{second}")
@@ -36,21 +35,18 @@ def weird_timer():
     timer.after(1000, update_timer)
 
 def spaceBind(e):
-    print(rand_lines)
     print(girdi_alani.get())
-    global minute
-    global total_true_char
-    global total_false_char
+    global minute, total_false_char, total_true_char
     minute = 0 
     if not hasattr(spaceBind, "one_times"):
         weird_timer()
         spaceBind.one_times = True
     try:
         if len(rand_lines) == 1 :
-            print(60-second)
             timer.after_cancel(tid)
             refresh_button.configure(state="enabled")
             girdi_alani.configure(state="disabled")
+            cpm_calculate()
 
         if girdi_alani.get() == rand_lines[0] :
             girdi_alani.configure(bootstyle="success")
@@ -58,10 +54,12 @@ def spaceBind(e):
             total_true_char += len(rand_lines[0])
 
         if girdi_alani.get() != rand_lines[0]:
-            if second != 0 :
+            if second != 60 :    
                 girdi_alani.configure(bootstyle="danger")
                 girdi_alani.after(100, falseAns)
                 total_false_char += len(rand_lines[0])
+            else:
+                girdi_alani.configure(bootstyle="dark")
 
     except IndexError:
         pass
@@ -79,8 +77,6 @@ def falseAns():
     girdi_alani.delete(0,tkb.END)
     girdi_alani.icursor(0)
     rand_lines.pop(0)
-    print(total_false_char)
-    print(total_true_char)
     false_meter.step(1)
     update_soru_alani()
 
@@ -102,6 +98,14 @@ def refresh_test():
 
 def fast_remove(e):
     girdi_alani.delete(0, tkb.END)
+
+def cpm_calculate():
+    total_char = total_true_char+total_false_char
+    prcs = (60-second)
+    if second == 60:
+        return cpm_meter.amountusedvar.set(int(total_char/(60/5)))
+    else:
+        return cpm_meter.amountusedvar.set(int(total_char/(prcs/5)))
 
 def kp_watch(e):
     print(e)
