@@ -1,3 +1,6 @@
+# typingtest
+
+![typingtest](https://ibb.co/X7BztpV)
 
 ## Adımlar
 
