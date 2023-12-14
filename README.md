@@ -1,6 +1,6 @@
 # typingtest
 
-![typingtest](https://i.ibb.co/GWwVRkF/typingtest.png=50x50)
+![typingtest](https://i.ibb.co/GWwVRkF/typingtest.png)
 
 ## Adımlar
 
