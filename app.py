@@ -13,7 +13,12 @@ minute = 1
 second = 60
 total_true_char: int = 0
 total_false_char: int = 0
+totalgame: int = 0
 isLogin: bool = False
+# MongoDB
+client = pymongo.MongoClient("mongodb://localhost:27017")
+collection = client["your_database"]
+users = collection["users"]
 # -------------------
 
 # Funcs
@@ -47,11 +52,14 @@ def weird_timer():
 
 def spaceBind(e):
     print(girdi_alani.get())
-    global minute, total_false_char, total_true_char
+    global minute, total_false_char, total_true_char, totalgame
     minute = 0 
+    print(totalgame)
     if not hasattr(spaceBind, "one_times"):
         weird_timer()
+        totalgame += 1
         spaceBind.one_times = True
+        
     try:
         if len(rand_lines) == 1 :
             timer.after_cancel(tid)
@@ -92,7 +100,7 @@ def falseAns():
     update_soru_alani()
 
 def refresh_test():
-    global rand_lines, second, minute
+    global rand_lines, second, minute, totalgame, isLogin
     true_meter.amountusedvar.set(0)
     false_meter.amountusedvar.set(0)
     cpm_meter.amountusedvar.set(0)
@@ -105,6 +113,7 @@ def refresh_test():
     minute = 0
     timer.config(text=f"{minute}:00")
     refresh_button.configure(state="disabled")
+    totalgame += 1
     weird_timer()
 
 def fast_remove(e):
@@ -118,10 +127,9 @@ def cpm_calculate():
     else:
         return cpm_meter.amountusedvar.set(int(total_char/(prcs/5)))
 
+# Login - Register func
+    
 def login_register():
-
-    client = pymongo.MongoClient("mongodb://localhost:27017")
-
     def visibility_change():
         login_show_state = password_entry.cget("show")
         register_show_state = register_password_entry.cget("show")
@@ -140,16 +148,19 @@ def login_register():
             register_visibility_button.configure(image=visibility_off)
 
     def dashboard_quit():
-        global isLogin
+        global isLogin, totalgame
         isLogin = False
         if isLogin == False:
             dashboard_top.withdraw()
             dashboard_button.place_forget()
-            # toplevel.deiconify()
             login_register_button.place(x=880, y=30)
+            query = {"username":user["username"]}
+            update_query = {"$inc":{"totalgame": totalgame}}
+            users.update_one(query, update_query)
+            totalgame = 0
 
     def dashboard_frame():
-        global dashboard_top
+        global dashboard_top, dashboard_score
         dashboard_top = tkb.Toplevel(title="Dashboard",size=(400,400) ,resizable=(False,False), position=(500,300))
         dashboard_top.iconbitmap("img/keyboard_2.ico")
 
@@ -158,6 +169,9 @@ def login_register():
 
         dashboard_username = tkb.Label(dashboard_top, text=f"Kullanıcı Adı : {user["username"]}", bootstyle="success")
         dashboard_username.place(x=30 , y=30)
+
+        dashboard_score = tkb.Label(dashboard_top, text=f"Toplam oynanılan oyun : {user["totalgame"]}", bootstyle="success")
+        dashboard_score.place(x=30 , y=60)
 
         dashboard_top.mainloop()
 
@@ -172,39 +186,40 @@ def login_register():
                 isLogin = True
                 if isLogin == True:
                     login_register_button.place_forget()
-                    toplevel.withdraw()
                     dashboard_button = tkb.Button(root, image=username_image , bootstyle="primary-outline", takefocus=False, command=dashboard_frame)
                     dashboard_button.place(x=920, y=30)
+                    toplevel.destroy()
                     dashboard_frame()
 
             else:
                 messagebox.showerror("Login","Kullanıcı adı veya şifre yanlış !!!")
         except Exception as e :
-            messagebox.showerror("Hata","Beklenmedik bir hata oluştu")
+            messagebox.showerror("Server hatası","Server hatası lütfen tekrar deneyin !!!")
 
     def register():
         try:
             collection = client["your_database"]
             users = collection["users"]
-            # register_username_entry.delete(0,tkb.END)
-            # register_password_entry.delete(0,tkb.END)
-            if register_username_entry.get() == "" or register_password_entry.get() == "":
-                messagebox.showerror("Hata","Boş bir karakter tanımladınız")
+            if register_username_entry.get() == "username" or register_password_entry.get() == "password":
+                messagebox.showerror("Hata","Kullanıcı veya şifre boş !!!")
             else:
-                for i in users.find():
-                    if i == users.find_one({'username':register_username_entry.get()}):
-                        messagebox.showerror("Eşleşen Hesap","Bu kullanıcı adına ait bir hesap var !!!")
-                    else:
-                        users.insert_one({"username":register_username_entry.get(),"password":register_password_entry.get(),"scores":{}})
-                        messagebox.showinfo("Başarılı","Hesap Oluşturuldu")
+                user = users.find_one({'username':register_username_entry.get().strip().lower()})
+                if user:
+                    messagebox.showerror("Eşleşen Hesap","Bu kullanıcı adına ait bir hesap var !!!") 
+                else:
+                    users.insert_one({"username":register_username_entry.get(),"password":register_password_entry.get(),"totalgame":0})
+                    messagebox.showinfo("Başarılı","Hesap Oluşturuldu")
+                    toplevel.withdraw()
+                        
         except Exception as e:
-            messagebox.showerror("Hata","Beklenmedik bir hata oluştu")
+            messagebox.showerror("Server hatası","Server hatası lütfen tekrar deneyin !!!")
     
     # PhotoImage
     username_image = tkb.PhotoImage(file=r"img/person.png")
     password_image = tkb.PhotoImage(file=r"img/lock.png")
     visibility_on = tkb.PhotoImage(file=r"img/visibility_on.png")
     visibility_off = tkb.PhotoImage(file=r"img/visibility_off.png")
+    refresh_dashboard = tkb.PhotoImage(file=r"img/refresh.png")
 
     # Styles
     notebook_style = tkb.Style()
