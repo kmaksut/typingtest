@@ -121,33 +121,85 @@ def cpm_calculate():
 def login_register():
 
     client = pymongo.MongoClient("mongodb://localhost:27017")
+
     def visibility_change():
-        password_entry.configure(show=False)
-        visibility_button.configure(image=visibility_off)
-    
+        login_show_state = password_entry.cget("show")
+        register_show_state = register_password_entry.cget("show")
+        if login_show_state :
+            password_entry.configure(show="")
+            visibility_button.configure(image=visibility_on)
+        else:
+            password_entry.configure(show="*")
+            visibility_button.configure(image=visibility_off)
+
+        if register_show_state :
+            register_password_entry.configure(show="")
+            register_visibility_button.configure(image=visibility_on)
+        else:
+            register_password_entry.configure(show="*")
+            register_visibility_button.configure(image=visibility_off)
+
+    def dashboard_quit():
+        global isLogin
+        isLogin = False
+        if isLogin == False:
+            dashboard_top.withdraw()
+            dashboard_button.place_forget()
+            # toplevel.deiconify()
+            login_register_button.place(x=880, y=30)
+
+    def dashboard_frame():
+        global dashboard_top
+        dashboard_top = tkb.Toplevel(title="Dashboard",size=(400,400) ,resizable=(False,False), position=(500,300))
+        dashboard_top.iconbitmap("img/keyboard_2.ico")
+
+        dashboard_quit_button = tkb.Button(dashboard_top, text="Çıkış yap", takefocus=False, bootstyle="danger", command=dashboard_quit)
+        dashboard_quit_button.place(x=160, y=330)
+
+        dashboard_username = tkb.Label(dashboard_top, text=f"Kullanıcı Adı : {user["username"]}", bootstyle="success")
+        dashboard_username.place(x=30 , y=30)
+
+        dashboard_top.mainloop()
+
     def login():
+        global dashboard_button, user
         try:
             collection = client["your_database"]
             users = collection["users"]
-            if users.find_one({"username":username_entry.get(),"password":password_entry.get()}) :
+            user = users.find_one({"username":username_entry.get(),"password":password_entry.get()})
+            if user:
                 messagebox.showinfo("Login","Giriş Onaylandı")
                 isLogin = True
                 if isLogin == True:
                     login_register_button.place_forget()
-                    toplevel.destroy()
-                    dashboard_button = tkb.Button(root, image=visibility_on , bootstyle="primary-outline", takefocus=False)
-                    dashboard_button.place(x=930, y=10)
-
-                    dashboard_top = tkb.Toplevel(title="Dashboard",size=(400,400) ,resizable=(False,False), position=(500,300))
-                    dashboard_top.iconbitmap("img/keyboard_2.ico")
-
-                    dashboard_top.mainloop()
+                    toplevel.withdraw()
+                    dashboard_button = tkb.Button(root, image=username_image , bootstyle="primary-outline", takefocus=False, command=dashboard_frame)
+                    dashboard_button.place(x=920, y=30)
+                    dashboard_frame()
 
             else:
                 messagebox.showerror("Login","Kullanıcı adı veya şifre yanlış !!!")
         except Exception as e :
-            print(e)
+            messagebox.showerror("Hata","Beklenmedik bir hata oluştu")
 
+    def register():
+        try:
+            collection = client["your_database"]
+            users = collection["users"]
+            # register_username_entry.delete(0,tkb.END)
+            # register_password_entry.delete(0,tkb.END)
+            if register_username_entry.get() == "" or register_password_entry.get() == "":
+                messagebox.showerror("Hata","Boş bir karakter tanımladınız")
+            else:
+                for i in users.find():
+                    if i == users.find_one({'username':register_username_entry.get()}):
+                        messagebox.showerror("Eşleşen Hesap","Bu kullanıcı adına ait bir hesap var !!!")
+                    else:
+                        users.insert_one({"username":register_username_entry.get(),"password":register_password_entry.get(),"scores":{}})
+                        messagebox.showinfo("Başarılı","Hesap Oluşturuldu")
+        except Exception as e:
+            messagebox.showerror("Hata","Beklenmedik bir hata oluştu")
+    
     # PhotoImage
     username_image = tkb.PhotoImage(file=r"img/person.png")
     password_image = tkb.PhotoImage(file=r"img/lock.png")
@@ -207,7 +259,11 @@ def login_register():
     register_password_entry = tkb.Entry(register_frame, font=("",13), show="*")
     register_password_entry.place(x=58, y=120, relwidth=0.8, relheight=0.18)
 
-    register_button = tkb.Button(register_frame, text="Login", takefocus=False)
+    register_visibility_button = tkb.Button(register_frame, image=visibility_on, takefocus=False, command=visibility_change)
+    register_visibility_button.place(x=315, y=120, relheight=0.18)
+
+
+    register_button = tkb.Button(register_frame, text="Register", takefocus=False, command=register)
     register_button.place(x=140, y=200, relwidth=0.3, relheight=0.16)
 
     login_register_notebook.add(login_frame, text="Login")
@@ -299,9 +355,9 @@ def login_register():
         passwordBindings.bind("<FocusIn>",rfocusIn)
         passwordBindings.bind("<FocusOut>", rfocusOut)
 
-    for loginBindindgs in [username_entry, password_entry]:
-        loginBindindgs.bind("<Key>", login_inputs)
-        loginBindindgs.bind("<Key>", login_inputs)
+    # for loginBindindgs in [username_entry, password_entry]:
+    #     loginBindindgs.bind("<Key>", login_inputs)
+    #     loginBindindgs.bind("<Key>", login_inputs)
 
     toplevel.mainloop()
 # -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -321,11 +377,11 @@ account_photo_style.configure("TButton",bg="red")
 
 # tkb UI
 soru_alani = tkb.Label(root, bootstyle="inverse-light",background="white" ,text="", justify="left", wraplength=680, font=("",14), borderwidth=0.5, relief="solid")
-soru_alani.place(x=150 , y=50, relheight=0.18, relwidth=0.7)
+soru_alani.place(x=150 , y=110, relheight=0.18, relwidth=0.7)
 
 # Girdi Alanı
 girdi_alani_frame = tkb.Frame(root, bootstyle="secondary")
-girdi_alani_frame.place(x=150 , y=190 , relheight=0.09, relwidth=0.7)
+girdi_alani_frame.place(x=150 , y=250 , relheight=0.09, relwidth=0.7)
 
 girdi_alani = tkb.Entry(girdi_alani_frame, bootstyle="light", font=("", 14))
 girdi_alani.place(x=100 , y=4 , relheight=0.85, relwidth=0.6)
@@ -337,8 +393,8 @@ refresh_button = tkb.Button(girdi_alani_frame, bootstyle="primary" ,state="disab
 refresh_button.place(x=625 , y=5, relheight=0.8)
 
 # Login - Register
-login_register_button = tkb.Button(root, image=account_photo, takefocus=False, bootstyle="secondary-outline", command=login_register)
-login_register_button.place(x=930, y=10)
+login_register_button = tkb.Button(root, text="Giriş Yap", takefocus=False, bootstyle="primary-outline", command=login_register)
+login_register_button.place(x=880, y=30)
 
 # CPM or Etc
 true_meter = tkb.Meter(amounttotal=100, bootstyle="success",amountused=0, interactive=False, subtext="Doğru", metersize=80, textfont=("",11), subtextfont=("",6), stripethickness=10, wedgesize=7, metertype="semi", meterthickness=10)
