@@ -1,6 +1,9 @@
 # typingtest
 
+![Static Badge](https://img.shields.io/github%2Flast-commit%2Fkmaksut%2Ftypingtest)
+
 ![typingtest](https://i.ibb.co/GWwVRkF/typingtest.png)
+
 
 ## Adımlar
 
@@ -27,7 +30,6 @@ Gerekli paketleri yükle
 
 ```bash
   python app.py
-
 ```
 
   
